@@ -12,6 +12,7 @@ log.setLevel(logging.DEBUG)
 from pyshorteners import Shortener
 from io import StringIO
 from dotenv import load_dotenv
+import re
 
 #from polyglot.text import Text
 # def extract_words(msg)
@@ -35,7 +36,7 @@ def get_google_image_url(word):
 
 def main():
     load_dotenv(os.path.join(os.path.dirname(__file__), 'config'))
-    botname = "words_battle"
+    botname = "wordsbattle"
     target_twitterers = ["iw_tatsu", "hamko_intel", "ompugao", "D_Plius"]
 
     sleep_time = 1
@@ -55,25 +56,38 @@ def main():
         mentions = tweet["entities"]["user_mentions"]
         mentioned_users = [ mention["screen_name"] for mention in mentions ]
 
-        log.info("got message: {}".format(tweet.text))
+        log.info("got message: %s"%(tweet['text'],))
+
         if botname in mentioned_users:
-            log.info("thanking @%s for the mention" % tweet["user"]["screen_name"])
-            #words = extract_words(tweet.text)
-            words = tweet.text.split('\n')
-            msg = StringIO()
-            for w in words:
+            log.info("got a mention tweet from @%s" % tweet["user"]["screen_name"])
+            #from IPython.terminal import embed; ipshell=embed.InteractiveShellEmbed(config=embed.load_default_config())(local_ns=locals())
+
+            text = tweet['text']
+            phrases = [line.lstrip().rstrip() for line in re.sub(r'#\w+', '', re.sub(r'@\w+', '', text)).split('\n')]
+            phrases = [s for s in filter(lambda x: x is not '', phrases)]
+            log.info("extracted phrases: %s"%(phrases,))
+            for w in phrases:
+                msg = StringIO()
+                for tw in target_twitterers:
+                    msg.write('@')
+                    msg.write(tw)
+                    msg.write(' ')
+
                 msg.write(w)
                 msg.write('\n')
                 msg.write(get_dictionary_url(w))
                 msg.write('\n')
                 msg.write(get_google_image_url(w))
-                msg.write('\n')
+                msg.write(' ')
 
-            msg.write("from @{}".format(tweet["user"]["screen_name"]))
-            try:
-                api.PostUpdate(msg.getvalue())
-            except Exception as e:
-                log.warning(" - failed (maybe a duplicate?): %s" % e)
+                msg.write("from @{}".format(tweet["user"]["screen_name"]))
+                tweet_msg = msg.getvalue()
+                log.info("tweet: " + tweet_msg)
+                try:
+                    api.PostUpdate(tweet_msg)
+                except Exception as e:
+                    log.warning("failed to tweet: %s" % e)
+                time.sleep(sleep_time)
 
         time.sleep(sleep_time)
 
