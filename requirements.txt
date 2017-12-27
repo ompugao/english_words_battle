@@ -1,0 +1,9 @@
+python-twitter
+numpy
+pyshorteners
+python-dotenv
+
+# polyglot
+# pycld2
+# morfessor
+# bitly_api
