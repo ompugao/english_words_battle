@@ -4,7 +4,7 @@ import time
 import os
 import urllib
 import logging
-log = logging.getLogger()
+log = logging.getLogger('english_battle_bot')
 stream_handle = logging.StreamHandler()
 stream_handle.setLevel(logging.DEBUG)
 log.addHandler(stream_handle)
@@ -28,10 +28,10 @@ def shrink_url(url):
     return shortener.short(url)
 
 def get_dictionary_url(word):
-    return shrink_url(urllib.parse("https://eow.alc.co.jp/search?q={}".format(word)))
+    return shrink_url("https://eow.alc.co.jp/search?q="+urllib.parse.quote(word))
 
 def get_google_image_url(word):
-    return shrink_url(urllib.parse("https://www.google.co.jp/search?tbm=isch&q={}".format(word)))
+    return shrink_url("https://www.google.co.jp/search?tbm=isch&q="+urllib.parse.quote(word))
 
 def main():
     load_dotenv(os.path.join(os.path.dirname(__file__), 'config'))
