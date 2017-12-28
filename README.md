@@ -1,4 +1,4 @@
-### A twitte rbot for English Words Battle
+### A twitter bot for English Words Battle
 
 ![https://twitter.com/wordsbattle](https://pbs.twimg.com/profile_images/946017621446574085/W_UbesIA_400x400.jpg)
 
