@@ -1,95 +1,130 @@
 #!/usr/bin/python
-import twitter
-import time
-import os
-import urllib
-import logging
-log = logging.getLogger('english_battle_bot')
-stream_handle = logging.StreamHandler()
-stream_handle.setLevel(logging.DEBUG)
-log.addHandler(stream_handle)
-log.setLevel(logging.DEBUG)
-from pyshorteners import Shortener
-from io import StringIO
 from dotenv import load_dotenv
+from io import StringIO
+import logging
+import os
+from pyshorteners import Shortener
 import re
+import time
+import twitter
+import urllib
 
-#from polyglot.text import Text
-# def extract_words(msg)
-#     tokens = Text(msg)
-#     words = []
-#     for w, t in tokens.pos_tags:
-#         if t in [':
-# 
-#         words.append(w)
+# Constants
+# TODO(tiwanari): make them configurable by a file
+LOG = logging.getLogger('english_battle_bot')
+BOTNAME = "wordsbattle"
+TARGET_TWITTERERS = ["iw_tatsu", "hamko_intel", "ompugao", "D_Plius"]
+SLEEP_TIME = 1
+
+
+def init_logging():
+    stream_handle = logging.StreamHandler()
+    stream_handle.setLevel(logging.DEBUG)
+    LOG.addHandler(stream_handle)
+    LOG.setLevel(logging.DEBUG)
+
+
+def read_config():
+    load_dotenv(os.path.join(os.path.dirname(__file__), 'config'))
+
+
+def is_valid_tweet(tweet):
+    if "entities" not in tweet:
+        return False
+
+    LOG.info("got message: %s" % (tweet['text'],))
+
+    mentions = tweet["entities"]["user_mentions"]
+    mentioned_users = [mention["screen_name"] for mention in mentions]
+    if BOTNAME not in mentioned_users:
+        return False
+
+    LOG.info("got a mention tweet from @%s" % tweet["user"]["screen_name"])
+
+    return True
+
+
+def extract_phrases(tweet):
+    text = tweet['text']
+
+    phrases = [line.lstrip().rstrip() for line in re.sub(r'#\w+', '', re.sub(r'@\w+', '', text)).split('\n')]
+    return [s for s in filter(lambda x: x is not '', phrases)]
+
+
+def populate_mentions(msg, base_user):
+    # if this tweet was posted by this bot itself, it's okay to just
+    # reply to it because it should include the other users
+    if base_user == BOTNAME:
+        return
+
+    for user in TARGET_TWITTERERS:
+        # skip the user posted this tweet
+        if user == base_user:
+            continue
+        msg.write('@')
+        msg.write(user)
+        msg.write(' ')
 
 
 def shrink_url(url):
     shortener = Shortener('Bitly', bitly_token=os.environ["BITLY_ACCESS_TOKEN"])
     return shortener.short(url)
 
+
 def get_dictionary_url(word):
-    return shrink_url("https://eow.alc.co.jp/search?q="+urllib.parse.quote(word))
+    return shrink_url("https://eow.alc.co.jp/search?q=" + urllib.parse.quote(word))
+
 
 def get_google_image_url(word):
-    return shrink_url("https://www.google.co.jp/search?tbm=isch&q="+urllib.parse.quote(word))
+    return shrink_url("https://www.google.co.jp/search?tbm=isch&q=" + urllib.parse.quote(word))
+
+
+def create_message(base_tweet, phrase):
+    msg = StringIO()
+
+    base_user = base_tweet["user"]["screen_name"]
+    populate_mentions(msg, base_user)
+
+    msg.write(phrase)
+    msg.write('\n')
+    msg.write(get_dictionary_url(phrase))
+    msg.write('\n')
+    msg.write(get_google_image_url(phrase))
+    msg.write(' ')
+    msg.write("from @{}".format(base_user))
+    return msg.getvalue()
+
 
 def main():
-    load_dotenv(os.path.join(os.path.dirname(__file__), 'config'))
-    botname = "wordsbattle"
-    target_twitterers = ["iw_tatsu", "hamko_intel", "ompugao", "D_Plius"]
+    init_logging()
+    api = twitter.Api(access_token_key=os.environ["ACCESS_KEY"],
+                      access_token_secret=os.environ["ACCESS_SECRET"],
+                      consumer_key=os.environ["CONSUMER_KEY"],
+                      consumer_secret=os.environ["CONSUMER_SECRET"])
 
-    sleep_time = 1
-
-    api = twitter.Api(access_token_key = os.environ["ACCESS_KEY"],
-            access_token_secret = os.environ["ACCESS_SECRET"],
-            consumer_key = os.environ["CONSUMER_KEY"],
-            consumer_secret = os.environ["CONSUMER_SECRET"])
-
-
-    log.info("start!")
+    LOG.info("start!")
     for tweet in api.GetUserStream():
-        # validate a tweet
-        if "entities" not in tweet:
+        if not is_valid_tweet(tweet):
             continue
 
-        mentions = tweet["entities"]["user_mentions"]
-        mentioned_users = [ mention["screen_name"] for mention in mentions ]
+        phrases = extract_phrases(tweet)
+        LOG.info("extracted phrases: %s" % (phrases,))
 
-        log.info("got message: %s"%(tweet['text'],))
+        prev_tweet = tweet
+        for phrase in phrases:
+            message = create_message(tweet, phrase)
 
-        if botname in mentioned_users:
-            log.info("got a mention tweet from @%s" % tweet["user"]["screen_name"])
-            #from IPython.terminal import embed; ipshell=embed.InteractiveShellEmbed(config=embed.load_default_config())(local_ns=locals())
+            LOG.info("posting a tweet: " + message)
+            try:
+                prev_tweet = api.PostUpdate(
+                    message,
+                    in_reply_to_status_id=prev_tweet["id"],
+                    auto_populate_reply_metadata=True)
+            except Exception as e:
+                LOG.warning("failed to tweet: %s" % e)
+            time.sleep(SLEEP_TIME)
 
-            text = tweet['text']
-            phrases = [line.lstrip().rstrip() for line in re.sub(r'#\w+', '', re.sub(r'@\w+', '', text)).split('\n')]
-            phrases = [s for s in filter(lambda x: x is not '', phrases)]
-            log.info("extracted phrases: %s"%(phrases,))
-            for w in phrases:
-                msg = StringIO()
-                for tw in target_twitterers:
-                    msg.write('@')
-                    msg.write(tw)
-                    msg.write(' ')
-
-                msg.write(w)
-                msg.write('\n')
-                msg.write(get_dictionary_url(w))
-                msg.write('\n')
-                msg.write(get_google_image_url(w))
-                msg.write(' ')
-
-                msg.write("from @{}".format(tweet["user"]["screen_name"]))
-                tweet_msg = msg.getvalue()
-                log.info("tweet: " + tweet_msg)
-                try:
-                    api.PostUpdate(tweet_msg)
-                except Exception as e:
-                    log.warning("failed to tweet: %s" % e)
-                time.sleep(sleep_time)
-
-        time.sleep(sleep_time)
+        time.sleep(SLEEP_TIME)
 
 if __name__ == '__main__':
     main()
