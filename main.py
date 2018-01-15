@@ -14,7 +14,7 @@ import urllib
 LOG = logging.getLogger('english_battle_bot')
 BOTNAME = "wordsbattle"
 TARGET_TWITTERERS = ["iw_tatsu", "hamko_intel", "ompugao", "D_Plius"]
-SLEEP_TIME = 1
+SLEEP_TIME = 5
 
 
 def init_logging():
