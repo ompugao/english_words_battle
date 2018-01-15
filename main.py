@@ -52,11 +52,6 @@ def extract_phrases(tweet):
 
 
 def populate_mentions(msg, base_user):
-    # if this tweet was posted by this bot itself, it's okay to just
-    # reply to it because it should include the other users
-    if base_user == BOTNAME:
-        return
-
     for user in TARGET_TWITTERERS:
         # skip the user posted this tweet
         if user == base_user:
@@ -79,11 +74,12 @@ def get_google_image_url(word):
     return shrink_url("https://www.google.co.jp/search?tbm=isch&q=" + urllib.parse.quote(word))
 
 
-def create_message(base_tweet, phrase):
+def create_message(base_user, phrase, is_first_tweet):
     msg = StringIO()
 
-    base_user = base_tweet["user"]["screen_name"]
-    populate_mentions(msg, base_user)
+    # the first tweet should include all the users
+    if is_first_tweet:
+        populate_mentions(msg, base_user)
 
     msg.write(phrase)
     msg.write('\n')
@@ -97,6 +93,8 @@ def create_message(base_tweet, phrase):
 
 def main():
     init_logging()
+    read_config()
+
     api = twitter.Api(access_token_key=os.environ["ACCESS_KEY"],
                       access_token_secret=os.environ["ACCESS_SECRET"],
                       consumer_key=os.environ["CONSUMER_KEY"],
@@ -110,16 +108,19 @@ def main():
         phrases = extract_phrases(tweet)
         LOG.info("extracted phrases: %s" % (phrases,))
 
-        prev_tweet = tweet
+        base_user = tweet["user"]["screen_name"]
+
+        prev_tweet_id, is_first_tweet = tweet["id"], True
         for phrase in phrases:
-            message = create_message(tweet, phrase)
+            message = create_message(base_user, phrase, is_first_tweet)
 
             LOG.info("posting a tweet: " + message)
             try:
-                prev_tweet = api.PostUpdate(
+                status = api.PostUpdate(
                     message,
-                    in_reply_to_status_id=prev_tweet["id"],
+                    in_reply_to_status_id=prev_tweet_id,
                     auto_populate_reply_metadata=True)
+                prev_tweet_id, is_first_tweet = status.id, False
             except Exception as e:
                 LOG.warning("failed to tweet: %s" % e)
             time.sleep(SLEEP_TIME)
