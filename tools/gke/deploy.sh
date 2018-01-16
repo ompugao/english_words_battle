@@ -41,5 +41,4 @@ else
 fi
 
 # check if the deploy worked
-echo "Please make sure you can see 'Running' for $DEPLOYMENT_NAME"
-kubectl get pod
+echo "Please make sure you can see 'Running' for $DEPLOYMENT_NAME by run 'kubectl get pod'"
