@@ -74,6 +74,22 @@ def get_google_image_url(word):
     return shrink_url("https://www.google.co.jp/search?tbm=isch&q=" + urllib.parse.quote(word))
 
 
+def is_ascii(word):
+    return all(ord(c) < 128 for c in word)
+
+
+def get_gogen_url(word):
+    return shrink_url("http://eigogen.com/word/" + word + "/")
+
+
+def is_likely_an_english_word(word):
+    if len(word.split(" ")) != 1:
+        return False
+    if not is_ascii(word):
+        return False
+    return True
+
+
 def create_message(base_user, phrase, is_first_tweet):
     msg = StringIO()
 
@@ -86,6 +102,9 @@ def create_message(base_user, phrase, is_first_tweet):
     msg.write(get_dictionary_url(phrase))
     msg.write('\n')
     msg.write(get_google_image_url(phrase))
+    if is_likely_an_english_word(phrase):
+        msg.write('\n')
+        msg.write(get_gogen_url(phrase))
     msg.write(' ')
     msg.write("from @{}".format(base_user))
     return msg.getvalue()
