@@ -48,7 +48,7 @@ def is_valid_tweet(tweet):
 def extract_phrases(tweet):
     text = tweet['text']
 
-    # delete hashtag('#\w+') and mension('@\w+') and split by '\n'
+    # Remove hashtag('#\w+') and mention('@\w+') and split by '\n'
     phrases = [line.lstrip().rstrip() for line in re.sub(r'#\w+', '', re.sub(r'@\w+', '', text)).split('\n')]
     return [s for s in filter(lambda x: x is not '', phrases)]
 
