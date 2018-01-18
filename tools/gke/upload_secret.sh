@@ -36,3 +36,6 @@ fi
 
 echo "Uploading ewb-secret..."
 kubectl create -f ./temp.yaml
+
+# set up environment variables by modifying the manifest of ewb-deploy deployment
+kubectl patch deployment ewb-deploy --patch "$(cat ./templates/setup_env.yaml)"

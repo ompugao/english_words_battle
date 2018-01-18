@@ -1,0 +1,31 @@
+spec:
+  template:
+    spec:
+      containers:
+      - name: ewb-deploy
+        env:
+          - name: CONSUMER_KEY
+            valueFrom:
+              secretKeyRef:
+                key: CONSUMER_KEY
+                name: ewb-secret
+          - name: CONSUMER_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: CONSUMER_SECRET
+                name: ewb-secret
+          - name: ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: ACCESS_KEY
+                name: ewb-secret
+          - name: ACCESS_SECRET
+            valueFrom:
+              secretKeyRef:
+                key: ACCESS_SECRET
+                name: ewb-secret
+          - name: BITLY_ACCESS_TOKEN
+            valueFrom:
+              secretKeyRef:
+                key: BITLY_ACCESS_TOKEN
+                name: ewb-secret

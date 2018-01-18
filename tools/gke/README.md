@@ -23,35 +23,11 @@ Google Kubernetes Engine tools
 # 指示に従って Twitter API のキーなどを入れる
 ```
 
-アップロードした Secret を環境変数として参照するためには[こちら](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-environment-variables)を参照のこと．具体的には以下をマニフェストに記述する (TODO: これも script で行いたい)．
+### アップロードされた Secret をチェックする
 
-```
-env:
-  - name: CONSUMER_KEY
-    valueFrom:
-      secretKeyRef:
-        name: ewb-secret
-        key: CONSUMER_KEY
-  - name: CONSUMER_SECRET
-    valueFrom:
-      secretKeyRef:
-        name: ewb-secret
-        key: CONSUMER_SECRET
-  - name: ACCESS_KEY
-    valueFrom:
-      secretKeyRef:
-        name: ewb-secret
-        key: ACCESS_KEY
-  - name: ACCESS_SECRET
-    valueFrom:
-      secretKeyRef:
-        name: ewb-secret
-        key: ACCESS_SECRET
-  - name: BITLY_ACCESS_TOKEN
-    valueFrom:
-      secretKeyRef:
-        name: ewb-secret
-        key: BITLY_ACCESS_TOKEN
+```sh
+kubectl get secret ewb-secret -o yaml > secret.yaml
+./decode secret.yaml    # 無駄なものも出るけど確認したいものが base64 デコードされて出るはず
 ```
 
 # デプロイ
