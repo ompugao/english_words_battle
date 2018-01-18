@@ -34,7 +34,7 @@ def is_valid_tweet(tweet):
 
     LOG.info("got message: %s" % (tweet['text'],))
 
-    # Confirm that the tweet is reply to this bot.
+    # confirm that the tweet is a reply to this bot
     mentions = tweet["entities"]["user_mentions"]
     mentioned_users = [mention["screen_name"] for mention in mentions]
     if BOTNAME not in mentioned_users:
@@ -44,11 +44,10 @@ def is_valid_tweet(tweet):
 
     return True
 
-
 def extract_phrases(tweet):
     text = tweet['text']
 
-    # Remove hashtag('#\w+') and mention('@\w+') and split by '\n'
+    # remove spaces in both ends, hashtags('#\w+'), and mentions('@\w+') and split by '\n' to make a word list (phrases)
     phrases = [line.lstrip().rstrip() for line in re.sub(r'#\w+', '', re.sub(r'@\w+', '', text)).split('\n')]
     return [s for s in filter(lambda x: x is not '', phrases)]
 
@@ -85,7 +84,7 @@ def get_gogen_url(word):
 
 
 def is_likely_an_english_word(word):
-    # search gogen if phrase is one word (someone tweet idiom made by some words)
+    # make sure this phrase is just one word (someone can tweet an idiom made of some words)
     if len(word.split(" ")) != 1:
         return False
     if not is_ascii(word):
