@@ -8,6 +8,7 @@ import re
 import time
 import twitter
 import urllib
+from pyquery import PyQuery
 
 # Constants
 # TODO(tiwanari): make them configurable by a file
@@ -82,6 +83,14 @@ def is_ascii(word):
 def get_gogen_url(word):
     return shrink_url("http://eigogen.com/word/" + word + "/")
 
+def get_gogen(word, timeout=3):
+    pq = PyQuery(url=("http://eigogen.com/word/" + word), timeout=timeout)
+    try:
+        text = pq.find('article')[0].find('section').find('p').text
+    finally:
+        # FIXME
+        text = 'gogen timeout'
+    return text
 
 def is_likely_an_english_word(word):
     # make sure this phrase is just one word (someone can tweet an idiom made of some words)
@@ -106,7 +115,7 @@ def create_message(base_user, phrase, is_first_tweet):
     msg.write(get_google_image_url(phrase))
     if is_likely_an_english_word(phrase):
         msg.write('\n')
-        msg.write(get_gogen_url(phrase))
+        msg.write(get_gogen(phrase))
     msg.write(' ')
     msg.write("from @{}".format(base_user))
     return msg.getvalue()

@@ -2,6 +2,8 @@ python-twitter
 numpy
 pyshorteners
 python-dotenv
+pyquery
+requests
 
 # polyglot
 # pycld2
