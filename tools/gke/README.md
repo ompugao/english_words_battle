@@ -27,7 +27,7 @@ Google Kubernetes Engine tools
 
 ```sh
 kubectl get secret ewb-secret -o yaml > secret.yaml
-./decode secret.yaml    # 無駄なものも出るけど確認したいものが base64 デコードされて出るはず
+./decode.sh secret.yaml    # 無駄なものも出るけど確認したいものが base64 デコードされて出るはず
 ```
 
 # デプロイ
