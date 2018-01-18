@@ -46,6 +46,7 @@ def is_valid_tweet(tweet):
 
     return True
 
+
 def extract_phrases(tweet):
     text = tweet['text']
 
@@ -80,8 +81,10 @@ def get_google_image_url(word):
 def is_ascii(word):
     return all(ord(c) < 128 for c in word)
 
+
 def get_gogen_url(word):
     return shrink_url("http://eigogen.com/word/" + word + "/")
+
 
 def scrape_gogen(word, timeout=3):
     pq = PyQuery(url=("http://eigogen.com/word/" + word), timeout=timeout)
@@ -92,7 +95,10 @@ def scrape_gogen(word, timeout=3):
         text = '-%s'%(e.message,)
     return text
 
+
 WordData = namedtuple('WordData', 'meaning', 'pronunciation')
+
+
 def scrape_word_data(word, timeout=3):
     pq = PyQuery(url=("https://eow.alc.co.jp/search?q=" + urllib.parse.quote(word)), timeout=timeout)
     try:
@@ -100,14 +106,15 @@ def scrape_word_data(word, timeout=3):
     except Exception as e:
         # FIXME
         meaning = '-%s\n'%(e.message,)
-    
+
     try:
         pronunciation = pq.find('span.attr')[0].findall('span')[2].text_content()
     except Exception as e:
         # FIXME
         pronunciation = '-%s\n'%(e.message,)
-    
+
     return WordData(meaning, pronunciation)
+
 
 def is_likely_an_english_word(word):
     # make sure this phrase is just one word (someone can tweet an idiom made of some words)
@@ -137,9 +144,10 @@ def create_question_message(base_user, phrase, is_first_tweet):
     msg.write("from @{}".format(base_user))
     return msg.getvalue()
 
+
 def create_answer_message(phrase):
     msg = StringIO()
-    meaning, pronunciation = scrape_word_data(word)
+    meaning, pronunciation = scrape_word_data(phrase)
 
     msg.write(phrase)
     msg.write(' :\n')
@@ -207,6 +215,7 @@ def main():
             time.sleep(SLEEP_TIME)
 
         time.sleep(SLEEP_TIME)
+
 
 if __name__ == '__main__':
     main()
