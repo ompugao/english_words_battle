@@ -8,6 +8,8 @@ import re
 import time
 import twitter
 import urllib
+from collections import namedtuple
+from pyquery import PyQuery
 
 # Constants
 # TODO(tiwanari): make them configurable by a file
@@ -43,6 +45,7 @@ def is_valid_tweet(tweet):
     LOG.info("got a mention tweet from @%s" % tweet["user"]["screen_name"])
 
     return True
+
 
 def extract_phrases(tweet):
     text = tweet['text']
@@ -83,6 +86,36 @@ def get_gogen_url(word):
     return shrink_url("http://eigogen.com/word/" + word + "/")
 
 
+def scrape_gogen(word, timeout=3):
+    pq = PyQuery(url=("http://eigogen.com/word/" + word), timeout=timeout)
+    try:
+        text = pq.find('article')[0].find('section').find('p').text
+    except Exception as e:
+        # FIXME
+        text = '-%s'%(e.message,)
+    return text
+
+
+WordData = namedtuple('WordData', 'meaning', 'pronunciation')
+
+
+def scrape_word_data(word, timeout=3):
+    pq = PyQuery(url=("https://eow.alc.co.jp/search?q=" + urllib.parse.quote(word)), timeout=timeout)
+    try:
+        meaning = pq.find('#resultsList > ul:nth-child(2) > li:nth-child(1) > div:nth-child(2) > ol:nth-child(2) > li:nth-child(1)')[0].text_content()
+    except Exception as e:
+        # FIXME
+        meaning = '-%s\n'%(e.message,)
+
+    try:
+        pronunciation = pq.find('span.attr')[0].findall('span')[2].text_content()
+    except Exception as e:
+        # FIXME
+        pronunciation = '-%s\n'%(e.message,)
+
+    return WordData(meaning, pronunciation)
+
+
 def is_likely_an_english_word(word):
     # make sure this phrase is just one word (someone can tweet an idiom made of some words)
     if len(word.split(" ")) != 1:
@@ -92,7 +125,7 @@ def is_likely_an_english_word(word):
     return True
 
 
-def create_message(base_user, phrase, is_first_tweet):
+def create_question_message(base_user, phrase, is_first_tweet):
     msg = StringIO()
 
     # the first tweet should include all the users
@@ -109,6 +142,27 @@ def create_message(base_user, phrase, is_first_tweet):
         msg.write(get_gogen_url(phrase))
     msg.write(' ')
     msg.write("from @{}".format(base_user))
+    return msg.getvalue()
+
+
+def create_answer_message(phrase):
+    msg = StringIO()
+    meaning, pronunciation = scrape_word_data(phrase)
+
+    # https://developer.twitter.com/en/docs/tweets/post-and-engage/api-reference/post-statuses-update
+    # see option: in_reply_to_status_id
+    # (...snip...) Therefore, you must include @username , where username is the author of the referenced Tweet, within the update.
+    msg.write("@{} ".format(BOTNAME))
+    msg.write(phrase)
+    msg.write(' :\n')
+    if is_likely_an_english_word(phrase):
+        msg.write(scrape_gogen(phrase))
+    else:
+        msg.write(meaning)
+
+    msg.write('\n')
+    msg.write(pronunciation)
+
     return msg.getvalue()
 
 
@@ -130,23 +184,42 @@ def main():
         LOG.info("extracted phrases: %s" % (phrases,))
 
         base_user = tweet["user"]["screen_name"]
+        base_tweet_id = tweet["id"]
 
-        prev_tweet_id, is_first_tweet = tweet["id"], True
+        # base_tweet --- phrase1_tweet ---------- phrase2_tweet ---------- phrase3_tweet --- ...
+        #                  \-- phrase1_ans_tweet    \-- phrase2_ans_tweet    \-- phrase3_ans_tweet
+        prev_phrase_tweet_id, is_first_tweet = base_tweet_id, True
         for phrase in phrases:
-            message = create_message(base_user, phrase, is_first_tweet)
+            message = create_question_message(base_user, phrase, is_first_tweet)
 
             LOG.info("posting a tweet: " + message)
             try:
                 status = api.PostUpdate(
                     message,
-                    in_reply_to_status_id=prev_tweet_id,
+                    in_reply_to_status_id=prev_phrase_tweet_id,
                     auto_populate_reply_metadata=True)
-                prev_tweet_id, is_first_tweet = status.id, False
+                prev_phrase_tweet_id, is_first_tweet = status.id, False
             except Exception as e:
                 LOG.warning("failed to tweet: %s" % e)
+                continue
+
+            current_phrase_tweet_id = status.id
+
+            message = create_answer_message(phrase)
+            LOG.info("posting an answer tweet: " + message)
+            try:
+                status = api.PostUpdate(
+                    message,
+                    in_reply_to_status_id=current_phrase_tweet_id,
+                    auto_populate_reply_metadata=False)
+            except Exception as e:
+                LOG.warning("failed to tweet: %s" % e)
+                continue
+
             time.sleep(SLEEP_TIME)
 
         time.sleep(SLEEP_TIME)
+
 
 if __name__ == '__main__':
     main()
