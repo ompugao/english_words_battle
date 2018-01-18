@@ -34,7 +34,7 @@ def is_valid_tweet(tweet):
 
     LOG.info("got message: %s" % (tweet['text'],))
 
-    # Confirm that the tweet is a reply to this bot
+    # confirm that the tweet is a reply to this bot
     mentions = tweet["entities"]["user_mentions"]
     mentioned_users = [mention["screen_name"] for mention in mentions]
     if BOTNAME not in mentioned_users:
@@ -47,14 +47,14 @@ def is_valid_tweet(tweet):
 def extract_phrases(tweet):
     text = tweet['text']
 
-    # Remove spaces in both ends, hashtags('#\w+'), and mentions('@\w+') and split by '\n' to make a word list (phrases)
+    # remove spaces in both ends, hashtags('#\w+'), and mentions('@\w+') and split by '\n' to make a word list (phrases)
     phrases = [line.lstrip().rstrip() for line in re.sub(r'#\w+', '', re.sub(r'@\w+', '', text)).split('\n')]
     return [s for s in filter(lambda x: x is not '', phrases)]
 
 
 def populate_mentions(msg, base_user):
     for user in TARGET_TWITTERERS:
-        # Skip the user posted this tweet
+        # skip the user posted this tweet
         if user == base_user:
             continue
         msg.write('@')
@@ -84,7 +84,7 @@ def get_gogen_url(word):
 
 
 def is_likely_an_english_word(word):
-    # Make sure this phrase is just one word (someone can tweet an idiom made of some words)
+    # make sure this phrase is just one word (someone can tweet an idiom made of some words)
     if len(word.split(" ")) != 1:
         return False
     if not is_ascii(word):
@@ -95,7 +95,7 @@ def is_likely_an_english_word(word):
 def create_message(base_user, phrase, is_first_tweet):
     msg = StringIO()
 
-    # The first tweet should include all the users
+    # the first tweet should include all the users
     if is_first_tweet:
         populate_mentions(msg, base_user)
 
