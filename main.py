@@ -99,7 +99,7 @@ def scrape_gogen(word, timeout=3):
     return text
 
 
-WordData = namedtuple('WordData', 'meaning', 'pronunciation')
+WordData = namedtuple('WordData', ('meaning', 'pronunciation'))
 
 
 def scrape_word_data(word, timeout=3):
