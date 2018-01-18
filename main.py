@@ -87,7 +87,10 @@ def get_gogen_url(word):
 
 
 def scrape_gogen(word, timeout=3):
-    pq = PyQuery(url=("http://eigogen.com/word/" + word), timeout=timeout)
+    try:
+        pq = PyQuery(url=("http://eigogen.com/word/" + word), timeout=timeout)
+    except Exception as e:
+        return ''
     try:
         text = pq.find('article')[0].find('section').find('p').text
     except Exception as e:
@@ -96,11 +99,15 @@ def scrape_gogen(word, timeout=3):
     return text
 
 
-WordData = namedtuple('WordData', 'meaning', 'pronunciation')
+WordData = namedtuple('WordData', ('meaning', 'pronunciation'))
 
 
 def scrape_word_data(word, timeout=3):
-    pq = PyQuery(url=("https://eow.alc.co.jp/search?q=" + urllib.parse.quote(word)), timeout=timeout)
+    try:
+        pq = PyQuery(url=("https://eow.alc.co.jp/search?q=" + urllib.parse.quote(word)), timeout=timeout)
+    except Exception as e:
+        return WordData('', '')
+
     try:
         meaning = pq.find('#resultsList > ul:nth-child(2) > li:nth-child(1) > div:nth-child(2) > ol:nth-child(2) > li:nth-child(1)')[0].text_content()
     except Exception as e:
