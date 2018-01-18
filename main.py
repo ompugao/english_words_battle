@@ -89,7 +89,7 @@ def scrape_gogen(word, timeout=3):
         text = pq.find('article')[0].find('section').find('p').text
     except Exception as e:
         # FIXME
-        text = 'failure: %s'%(e.message,)
+        text = '-%s'%(e.message,)
     return text
 
 WordData = namedtuple('WordData', 'meaning', 'pronunciation')
