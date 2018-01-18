@@ -149,6 +149,10 @@ def create_answer_message(phrase):
     msg = StringIO()
     meaning, pronunciation = scrape_word_data(phrase)
 
+    # https://developer.twitter.com/en/docs/tweets/post-and-engage/api-reference/post-statuses-update
+    # see option: in_reply_to_status_id
+    # (...snip...) Therefore, you must include @username , where username is the author of the referenced Tweet, within the update.
+    msg.write("@{} ".format(BOTNAME))
     msg.write(phrase)
     msg.write(' :\n')
     if is_likely_an_english_word(phrase):
@@ -207,7 +211,7 @@ def main():
                 status = api.PostUpdate(
                     message,
                     in_reply_to_status_id=current_phrase_tweet_id,
-                    auto_populate_reply_metadata=True)
+                    auto_populate_reply_metadata=False)
             except Exception as e:
                 LOG.warning("failed to tweet: %s" % e)
                 continue
