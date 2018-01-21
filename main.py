@@ -13,7 +13,7 @@ from pyquery import PyQuery
 
 # Constants
 # TODO(tiwanari): make them configurable by a file
-LOG = logging.getLogger('english_battle_bot')
+LOG = logging.getLogger("english_battle_bot")
 BOTNAME = "wordsbattle"
 TARGET_TWITTERERS = ["iw_tatsu", "hamko_intel", "ompugao", "D_Plius"]
 SLEEP_TIME = 5
@@ -27,14 +27,17 @@ def init_logging():
 
 
 def read_config():
-    load_dotenv(os.path.join(os.path.dirname(__file__), 'config'))
+    load_dotenv(os.path.join(os.path.dirname(__file__), "config"))
 
 
 def is_valid_tweet(tweet):
     if "entities" not in tweet:
         return False
 
-    LOG.info("got message: %s" % (tweet['text'],))
+    if tweet["user"]["screen_name"] == BOTNAME:
+        return False
+
+    LOG.info("got message: %s" % (tweet["text"],))
 
     # confirm that the tweet is a reply to this bot
     mentions = tweet["entities"]["user_mentions"]
@@ -47,12 +50,24 @@ def is_valid_tweet(tweet):
     return True
 
 
-def extract_phrases(tweet):
-    text = tweet['text']
+def remove_mentions(text):
+    return re.sub(r'@\w+', '', text)
 
-    # remove spaces in both ends, hashtags('#\w+'), and mentions('@\w+') and split by '\n' to make a word list (phrases)
-    phrases = [line.lstrip().rstrip() for line in re.sub(r'#\w+', '', re.sub(r'@\w+', '', text)).split('\n')]
-    return [s for s in filter(lambda x: x is not '', phrases)]
+
+def remove_hashtags(text):
+    return re.sub(r'#\w+', '', text)
+
+
+def extract_phrases(tweet):
+    text = tweet["text"]
+
+    text = remove_mentions(text)
+    text = remove_hashtags(text)
+
+    # split by '\n' to make a phrase list (phrases) and
+    # remove spaces at both ends of a phrase
+    phrases = [line.lstrip().rstrip() for line in text.split('\n')]
+    return filter(lambda x: x is not '', phrases)
 
 
 def populate_mentions(msg, base_user):
@@ -66,7 +81,7 @@ def populate_mentions(msg, base_user):
 
 
 def shrink_url(url):
-    shortener = Shortener('Bitly', bitly_token=os.environ["BITLY_ACCESS_TOKEN"])
+    shortener = Shortener("Bitly", bitly_token=os.environ["BITLY_ACCESS_TOKEN"])
     return shortener.short(url)
 
 
@@ -95,7 +110,7 @@ def scrape_gogen(word, timeout=3):
         text = pq.find('article')[0].find('section').find('p').text
     except Exception as e:
         # FIXME
-        text = '-%s'%(e.message,)
+        text = "-%s" % (e.message,)
     return text
 
 
@@ -112,19 +127,20 @@ def scrape_word_data(word, timeout=3):
         meaning = pq.find('#resultsList > ul:nth-child(2) > li:nth-child(1) > div:nth-child(2) > ol:nth-child(2) > li:nth-child(1)')[0].text_content()
     except Exception as e:
         # FIXME
-        meaning = '-%s\n'%(e.message,)
+        meaning = "-%s\n" % (e.message,)
 
     try:
         pronunciation = pq.find('span.attr')[0].findall('span')[2].text_content()
     except Exception as e:
         # FIXME
-        pronunciation = '-%s\n'%(e.message,)
+        pronunciation = "-%s\n" % (e.message,)
 
     return WordData(meaning, pronunciation)
 
 
 def is_likely_an_english_word(word):
-    # make sure this phrase is just one word (someone can tweet an idiom made of some words)
+    # make sure this phrase is just one word
+    # (someone can tweet an idiom made of some words)
     if len(word.split(" ")) != 1:
         return False
     if not is_ascii(word):
@@ -158,7 +174,8 @@ def create_answer_message(phrase):
 
     # https://developer.twitter.com/en/docs/tweets/post-and-engage/api-reference/post-statuses-update
     # see option: in_reply_to_status_id
-    # (...snip...) Therefore, you must include @username , where username is the author of the referenced Tweet, within the update.
+    # (...snip...) Therefore, you must include @username, where
+    # username is the author of the referenced Tweet, within the update.
     msg.write("@{} ".format(BOTNAME))
     msg.write(phrase)
     msg.write(' :\n')
