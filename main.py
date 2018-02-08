@@ -110,7 +110,7 @@ def scrape_gogen(word, timeout=3):
         text = pq.find('article')[0].find('section').find('p').text
     except Exception as e:
         # FIXME
-        text = "-%s" % (e.message,)
+        text = "-%s" % (e.args,)
     return text
 
 
@@ -127,13 +127,13 @@ def scrape_word_data(word, timeout=3):
         meaning = pq.find('#resultsList > ul:nth-child(2) > li:nth-child(1) > div:nth-child(2) > ol:nth-child(2) > li:nth-child(1)')[0].text_content()
     except Exception as e:
         # FIXME
-        meaning = "-%s\n" % (e.message,)
+        meaning = "-%s\n" % (e.args,)
 
     try:
         pronunciation = pq.find('span.attr')[0].findall('span')[2].text_content()
     except Exception as e:
         # FIXME
-        pronunciation = "-%s\n" % (e.message,)
+        pronunciation = "-%s\n" % (e.args,)
 
     return WordData(meaning, pronunciation)
 
