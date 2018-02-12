@@ -34,7 +34,7 @@ echo "Pushed a container to Container Repository. See https://console.cloud.goog
 num=$(kubectl get pod | grep $DEPLOYMENT_NAME | wc -l)
 if [ $num -lt 1 ]; then
     echo "Start Running the container..."
-    kubectl run $DEPLOYMENT_NAME --image=$image --command -- python main.py
+    kubectl run $DEPLOYMENT_NAME --image=$image --command -- python /ewb/src/main.py
 else
     echo "$DEPLOYMENT_NAME already exists. Updating the image with the new tag ($tag)..."
     kubectl set image deployment/$DEPLOYMENT_NAME $DEPLOYMENT_NAME=$image
