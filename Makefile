@@ -34,7 +34,7 @@ attach:
 	docker exec -it $(NAME) /bin/bash
 
 logs:
-	docker logs $(NAME)
+	docker logs -f $(NAME)
 
 test: build
 	docker run -it --rm \
