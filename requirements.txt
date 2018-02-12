@@ -4,6 +4,7 @@ pyshorteners
 python-dotenv
 pyquery
 requests
+pytest
 
 # polyglot
 # pycld2
