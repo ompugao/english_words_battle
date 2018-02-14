@@ -1,0 +1,46 @@
+version: 2
+jobs:
+  build_and_test:
+    docker:
+      - image: docker:18.02.0-ce-git #use docker in docker image
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - setup_remote_docker
+
+      # build a testing container
+      - run: docker build -t ewb:latest . 
+      # run test
+      - run: |
+          # circleci does not support mounting folders.
+          # to avoid it, create a data container and copy tests dir to it..
+          # see https://discuss.circleci.com/t/why-circleci-2-0-does-not-support-mounting-folders/11605
+          # TODO how can we use data volume? 
+          docker create -v /ewb/src/config -v /ewb/tests --name datacontainer alpine:3.4 /bin/true
+          [ -f $(pwd)/config ] && docker cp $(pwd)/config datacontainer:/ewb/src/config
+          docker cp $(pwd)/tests/. datacontainer:/ewb/tests/
+          docker run -it --rm --name testewb --volumes-from datacontainer ewb:latest /bin/bash -c "cd /ewb; pytest"
+
+  deploy_gke:
+    docker:
+      - image: docker:18.02.0-ce-git
+    working_directory: ~/repo
+    steps:
+      - run:
+          command: |
+            set -x
+            imagetag=$(git describe --tags)
+            ./tools/gke/deploy.sh $imagetag
+
+workflows:
+  version: 2
+  workflow_build_test_and_deploy:
+    jobs:
+      - build_and_test
+      - deploy_gke:
+          # run 'deploy_gke' only on master branch
+          requires:
+            - build_and_test
+          filters:
+            branches:
+              only: master

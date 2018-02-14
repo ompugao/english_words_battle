@@ -19,7 +19,7 @@ start:
 		/bin/bash -c "cd /ewb/src; python main.py"
 
 
-contener=`docker ps -a -q`
+container=`docker ps -a -q`
 image=`docker images | awk '/^<none>/ { print $$3 }'`
 
 .PHONY: clean
@@ -27,8 +27,8 @@ clean:
 	@if [ "$(image)" != "" ] ; then \
 		docker rmi $(image); \
 	fi
-	@if [ "$(contener)" != "" ] ; then \
-		docker rm $(contener); \
+	@if [ "$(container)" != "" ] ; then \
+		docker rm $(container); \
 	fi
 
 .PHONY: stop
