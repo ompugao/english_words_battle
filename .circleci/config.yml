@@ -2,7 +2,7 @@ version: 2
 jobs:
   build_and_test:
     docker:
-      - image: circleci/python:3.6.4-jessie-browsers #TODO use a plain image
+      - image: docker:18.02.0-ce-git #use docker in docker image
     working_directory: ~/repo
     steps:
       - checkout
@@ -23,7 +23,7 @@ jobs:
 
   deploy_gke:
     docker:
-      - image: circleci/python:3.6.4-jessie-browsers
+      - image: docker:18.02.0-ce-git
     working_directory: ~/repo
     steps:
       - run:
