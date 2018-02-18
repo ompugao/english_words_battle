@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ewb-dev-deploy
+  labels:
+    app: ewb
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ewb
+  template:
+    metadata:
+      labels:
+        app: ewb
+    spec:
+      containers:
+      - name: ewb
+        image: asia.gcr.io/english-battle-190402/english_words_battle:2.2-rc1-9-g6059325

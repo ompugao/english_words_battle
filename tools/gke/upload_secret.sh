@@ -3,6 +3,14 @@ set -eu
 
 SECRET=ewb-secret
 TEMPLATE=templates/secret.yaml
+require_params=1
+if [ $# -lt $require_params ]; then
+    echo "This script needs at least $require_params argument(s)"
+    echo "Usage: $0 deployment_name"
+    echo "e.g. $0 ewb-deploy"
+    exit 1
+fi
+deployment_name="$1"
 
 # make a secret
 echo "Please input the following credentials"
@@ -34,8 +42,8 @@ if [ $num -gt 1 ]; then
     kubectl delete -f ./temp.yaml
 fi
 
-echo "Uploading ewb-secret..."
+echo "Uploading secrets..."
 kubectl create -f ./temp.yaml
 
 # set up environment variables by modifying the manifest of ewb-deploy deployment
-kubectl patch deployment ewb-deploy --patch "$(cat ./templates/setup_env.yaml)"
+kubectl patch deployment $deployment_name --patch "$(cat ./templates/setup_env.yaml)"

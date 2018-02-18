@@ -17,23 +17,68 @@ jobs:
           # see https://discuss.circleci.com/t/why-circleci-2-0-does-not-support-mounting-folders/11605
           # TODO how can we use data volume? 
           docker create -v /ewb/src/config -v /ewb/tests --name datacontainer alpine:3.4 /bin/true
-          [ -f $(pwd)/config ] && docker cp $(pwd)/config datacontainer:/ewb/src/config
+          #[ -f $(pwd)/config ] && docker cp $(pwd)/config datacontainer:/ewb/src/config
           docker cp $(pwd)/tests/. datacontainer:/ewb/tests/
           docker run -it --rm --name testewb --volumes-from datacontainer ewb:latest /bin/bash -c "cd /ewb; pytest"
 
-  deploy_gke:
+  deploy_staging:
     docker:
-      - image: docker:18.02.0-ce-git
+      - image: google/cloud-sdk:latest
+    environment:
+      GCP_PROJECT: english-battle-190402
+      GCP_COMPUTE_ZONE: asia-northeast1-a
+      GCP_CLUSTER_NAME: ewb-dev
     working_directory: ~/repo
     steps:
+      #- run: echo 'alias gcloud="docker run --rm -ti google/cloud-sdk:latest gcloud"' >> $BASH_ENV
+      - run:
+          command: |
+            # use an production cluster temporarily
+            echo $GCLOUD_CLIENT_SECRET | base64 --decode > ${HOME}/client-secret.json
+            gcloud --quiet components update
+            gcloud auth activate-service-account --key-file ${HOME}/client-secret.json
+            gcloud --quiet config set project ${GCP_PROJECT}
+            gcloud --quiet config set compute/zone ${GCP_COMPUTE_ZONE}
+            gcloud --quiet container clusters get-credentials ${GCP_CLUSTER_NAME}
+      - run:  curl -sLJO https://github.com/mikefarah/yq/releases/download/1.14.0/yq_darwin_amd64 -o yq
       - run:
           command: |
             set -x
             imagetag=$(git describe --tags)
-            ./tools/gke/deploy.sh $imagetag
+            deployname=ewb-dev-deploy
+            ./tools/gke/deploy.sh $imagetag $deployname
+
+  deploy_gke:
+    docker:
+      - image: google/cloud-sdk:latest
+    environment:
+      GCP_PROJECT: english-battle-190402
+      GCP_COMPUTE_ZONE: asia-northeast1-a
+      GCP_CLUSTER_NAME: ewb
+    working_directory: ~/repo
+    steps:
+      #- run: echo 'alias gcloud="docker run --rm -ti google/cloud-sdk:latest gcloud"' >> $BASH_ENV
+      - run:
+          command: |
+            echo $GCLOUD_CLIENT_SECRET | base64 --decode > ${HOME}/client-secret.json
+            gcloud --quiet components update
+            gcloud auth activate-service-account --key-file ${HOME}/client-secret.json
+            gcloud config set project $GCLOUD_PROJECT
+      - run:
+          command: |
+            set -x
+            imagetag=$(git describe --tags)
+            deployname=ewb-dev-deploy
+            ./tools/gke/deploy.sh $imagetag $deployname
 
 workflows:
   version: 2
+  workflow_build_test_and_staging:
+    jobs:
+      - build_and_test
+      - deploy_gke:
+          requires:
+            - deploy_staging
   workflow_build_test_and_deploy:
     jobs:
       - build_and_test
